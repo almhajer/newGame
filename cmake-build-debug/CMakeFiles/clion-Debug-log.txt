@@ -1,0 +1,17 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/Applications/CLion.app/Contents/bin/ninja/mac/x64/ninja -G Ninja -S /Users/abdulkafi/game -B /Users/abdulkafi/game/cmake-build-debug
+-- Configuring done (0.1s)
+CMake Warning at CMakeLists.txt:9 (add_executable):
+  Cannot generate a safe runtime search path for target game because there is
+  a cycle in the constraint graph:
+
+    dir 0 is [/Users/abdulkafi/VulkanSDK/macOS/lib]
+      dir 1 must precede it due to runtime library [libMoltenVK.dylib]
+    dir 1 is [/usr/local/lib]
+      dir 0 must precede it due to runtime library [libvulkan.dylib]
+    dir 2 is [/Users/abdulkafi/glfw/lib]
+
+  Some of these libraries may not be found correctly.
+
+
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/abdulkafi/game/cmake-build-debug
