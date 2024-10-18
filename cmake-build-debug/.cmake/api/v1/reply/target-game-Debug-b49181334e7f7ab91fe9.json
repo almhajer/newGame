@@ -11,8 +11,9 @@
 		"commands" : 
 		[
 			"add_executable",
+			"link_directories",
 			"target_link_libraries",
-			"target_include_directories"
+			"include_directories"
 		],
 		"files" : 
 		[
@@ -26,13 +27,7 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 9,
-				"parent" : 0
-			},
-			{
-				"command" : 1,
-				"file" : 0,
-				"line" : 14,
+				"line" : 17,
 				"parent" : 0
 			},
 			{
@@ -42,21 +37,15 @@
 				"parent" : 0
 			},
 			{
-				"command" : 1,
+				"command" : 2,
 				"file" : 0,
-				"line" : 18,
+				"line" : 19,
 				"parent" : 0
 			},
 			{
-				"command" : 2,
+				"command" : 3,
 				"file" : 0,
-				"line" : 12,
-				"parent" : 0
-			},
-			{
-				"command" : 2,
-				"file" : 0,
-				"line" : 17,
+				"line" : 14,
 				"parent" : 0
 			}
 		]
@@ -67,18 +56,19 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g -std=gnu++17 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk -mmacosx-version-min=12.7 -fcolor-diagnostics"
+					"fragment" : "-g -std=gnu++17 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk -fcolor-diagnostics"
 				}
 			],
 			"includes" : 
 			[
 				{
-					"backtrace" : 5,
-					"path" : "/Users/abdulkafi/VulkanSDK/macOS/include"
+					"backtrace" : 4,
+					"path" : "/usr/local/Cellar/glfw/3.4/include"
 				},
 				{
-					"backtrace" : 6,
-					"path" : "/Users/abdulkafi/glfw/include"
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "/usr/local/include"
 				}
 			],
 			"language" : "CXX",
@@ -110,22 +100,22 @@
 				"role" : "flags"
 			},
 			{
-				"fragment" : "-Wl,-rpath,/usr/local/lib -Wl,-rpath,/Users/abdulkafi/VulkanSDK/macOS/lib -Wl,-rpath,/Users/abdulkafi/glfw/lib",
-				"role" : "libraries"
+				"backtrace" : 2,
+				"fragment" : "-L/usr/local/Cellar/glfw/3.4/lib",
+				"role" : "libraryPath"
 			},
 			{
-				"backtrace" : 2,
-				"fragment" : "/Users/abdulkafi/VulkanSDK/macOS//lib/libvulkan.dylib",
+				"fragment" : "-Wl,-rpath,/usr/local/Cellar/glfw/3.4/lib -Wl,-rpath,/usr/local/lib",
 				"role" : "libraries"
 			},
 			{
 				"backtrace" : 3,
-				"fragment" : "/usr/local/lib/libMoltenVK.dylib",
+				"fragment" : "-lglfw",
 				"role" : "libraries"
 			},
 			{
-				"backtrace" : 4,
-				"fragment" : "/Users/abdulkafi/glfw//lib/libglfw.3.dylib",
+				"backtrace" : 3,
+				"fragment" : "/usr/local/lib/libvulkan.dylib",
 				"role" : "libraries"
 			}
 		],
