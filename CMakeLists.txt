@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # تعيين مسارات Vulkan و GLFW
-set(VULKAN_SDK "/Users/abdulkafi/VulkanSDK/macOS/")
-set(GLFW_SDK "/Users/abdulkafi/glfw/")
+set(VULKAN_SDK "/Users/mac/VulkanSDK/macOS/")
+set(GLFW_SDK "/Users/mac/glfw/")
 
 # إضافة الملفات التنفيذية
 add_executable(game src/main.cpp)
