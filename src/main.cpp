@@ -1,10 +1,10 @@
 #include <iostream>
-#include <signal.h>
+#include <csignal>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include <cstdlib>
 #include <vector>
-#define PANIC(ERROR, FORMAT, ...) \
+#define PANIC_IF(ERROR, FORMAT, ...) \
 if (ERROR) { \
 fprintf(stderr, "%s -> %s -> %d -> Error(%i):\n\t" FORMAT "\n", \
 __FILE__, __FUNCTION__, __LINE__, ERROR, ##__VA_ARGS__); \
@@ -12,7 +12,7 @@ raise(SIGSEGV); \
 }
 
 void glfwErorrCallback(int error_code, const char *error_message) {
-    PANIC(error_code, "GLFW error: %s", error_message);
+    PANIC_IF(error_code, "GLFW error: %s", error_message);
 }
 
 void exitCallback() {
@@ -51,7 +51,8 @@ struct State {
     uint32_t queueFamilyIndex;
     VkDevice device;
     VkQueue queue;
-
+    VkSwapchainKHR swapchain;
+    VkExtent2D swapchainExtent;
 };
 
 void createWindow(State *state) {
@@ -63,8 +64,8 @@ void createWindow(State *state) {
     if (state->windowFullscreen) {
         state->windowMonitor = glfwGetPrimaryMonitor();
         const GLFWvidmode *monitor = glfwGetVideoMode(state->windowMonitor);
-        state->windowWidth=monitor->width;
-        state->windowHeight=monitor->height;
+        state->windowWidth = monitor->width;
+        state->windowHeight = monitor->height;
         std::cout << "Monitor: " << monitor->width << "x" << monitor->height << std::endl;
         state->windowMonitor = nullptr; // هذا يضمن إنشاء نافذة في وضع النوافذ العادية
     }
@@ -120,8 +121,8 @@ void createInstance(State *state) {
     };
     instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 
-    PANIC(vkCreateInstance(&instanceCreateInfo, state->allocator, &state->instance) != VK_SUCCESS,
-          "Failed to create Vulkan instance");
+    PANIC_IF(vkCreateInstance(&instanceCreateInfo, state->allocator, &state->instance) != VK_SUCCESS,
+             "Failed to create Vulkan instance");
     std::cout << "Instance created: " << reinterpret_cast<uintptr_t>(state->instance) << std::endl;
 }
 
@@ -140,18 +141,18 @@ void logInfo() {
 void selectPhysicalDevice(State *state) {
     uint32_t count;
     VkResult result = vkEnumeratePhysicalDevices(state->instance, &count, nullptr);
-    PANIC(result != VK_SUCCESS, "Couldn't enumerate physical devices");
-    PANIC(count == 0, "No physical devices found");
+    PANIC_IF(result != VK_SUCCESS, "Couldn't enumerate physical devices");
+    PANIC_IF(count == 0, "No physical devices found");
 
     std::cout << "Physical device count: " << count << std::endl;
 
     result = vkEnumeratePhysicalDevices(state->instance, &count, &state->physicalDevice);
-    PANIC(result != VK_SUCCESS, "Couldn't enumerate physical devices");
+    PANIC_IF(result != VK_SUCCESS, "Couldn't enumerate physical devices");
 }
 
 void createSurface(State *state) {
-    PANIC(glfwCreateWindowSurface(state->instance,state->window,state->allocator,&state->surface)!=VK_SUCCESS,
-          "Couldn't Create Surface");
+    PANIC_IF(glfwCreateWindowSurface(state->instance,state->window,state->allocator,&state->surface)!=VK_SUCCESS,
+             "Couldn't Create Surface");
     std::cout << "Surface created: " << reinterpret_cast<uintptr_t>(state->surface) << std::endl;
 }
 
@@ -162,7 +163,7 @@ void selectQueueFamily(State *state) {
     vkGetPhysicalDeviceQueueFamilyProperties(state->physicalDevice, &count, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(count);
     vkGetPhysicalDeviceQueueFamilyProperties(state->physicalDevice, &count, queueFamilies.data());
-    PANIC(count<0, "Couldn't find any queue families");
+    PANIC_IF(count<0, "Couldn't find any queue families");
     std::cout << "queue families Count: " << count << std::endl;
 
     // الخطوة 3: البحث عن عائلة الطابور المناسبة
@@ -207,7 +208,7 @@ void createDevice(State *state) {
 
     // إنشاء الجهاز المنطقي
     VkResult result = vkCreateDevice(state->physicalDevice, &deviceCreateInfo, state->allocator, &state->device);
-    PANIC(result != VK_SUCCESS, "فشل في إنشاء الجهاز المنطقي");
+    PANIC_IF(result != VK_SUCCESS, "فشل في إنشاء الجهاز المنطقي");
     std::cout << "Device created: " << reinterpret_cast<uintptr_t>(state->device) << std::endl;
 }
 
@@ -215,6 +216,91 @@ void createDevice(State *state) {
 void getQueue(State *state) {
     vkGetDeviceQueue(state->device, state->queueFamilyIndex, 0, &state->queue);
     std::cout << "queue created: " << reinterpret_cast<uintptr_t>(state->queue) << std::endl;
+}
+
+void createSwapchain(State *state) {
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    PANIC_IF(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(state->physicalDevice, state->surface,&surfaceCapabilities),
+             "Failed to get Surface Capabilities");
+    uint32_t minImageCount = surfaceCapabilities.minImageCount;
+    uint32_t imageCount = minImageCount + 1;
+    if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount) {
+        imageCount = surfaceCapabilities.maxImageCount;
+    }
+
+    uint32_t formatCount;
+    PANIC_IF(vkGetPhysicalDeviceSurfaceFormatsKHR(state->physicalDevice, state->surface, &formatCount, nullptr),
+             "Couldn't get surafce format");
+    std::vector<VkSurfaceFormatKHR> formats(formatCount);
+
+    PANIC_IF(vkGetPhysicalDeviceSurfaceFormatsKHR(state->physicalDevice, state->surface, &formatCount, formats.data()),
+             "Couldn't get surafce format");
+
+
+    uint32_t formatIndex = 0;
+    for (uint32_t i = 0; i < formatCount; i++) {
+        VkSurfaceFormatKHR format = formats[i];
+        if (format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR && format.format == VK_FORMAT_B8G8R8A8_SRGB) {
+            formatIndex = i;
+            break;
+        }
+    }
+    VkSurfaceFormatKHR format = formats[formatIndex];
+    // تعيين الوضع الافتراضي إلى VK_PRESENT_MODE_FIFO_KHR (مضمون التوفر)
+    VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    uint32_t presentModeCount = 0;
+
+    // الاستدعاء الأول للحصول على عدد أوضاع العرض التقديمي
+    VkResult result = vkGetPhysicalDeviceSurfacePresentModesKHR(state->physicalDevice, state->surface,
+                                                                &presentModeCount, nullptr);
+    PANIC_IF(result != VK_SUCCESS || presentModeCount == 0, "Failed to get surface present modes");
+
+    // تخصيص المتجه بأوضاع العرض التقديمي
+    std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+
+    // الاستدعاء الثاني للحصول على الأوضاع الفعلية
+    result = vkGetPhysicalDeviceSurfacePresentModesKHR(state->physicalDevice, state->surface, &presentModeCount,
+                                                       presentModes.data());
+    PANIC_IF(result != VK_SUCCESS, "Failed to get surface present modes");
+
+    // البحث عن أفضل وضع عرض تقديمي متاح
+    for (const auto &availablePresentMode: presentModes) {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+            break;
+        } else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR && presentMode !=
+                   VK_PRESENT_MODE_MAILBOX_KHR) {
+            presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+    }
+
+    std::cout << "Selected Present Mode: " << presentMode << std::endl;
+
+    VkSwapchainKHR swapchain;
+
+    VkSwapchainCreateInfoKHR createInfo = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = state->surface,
+        .queueFamilyIndexCount = 1,
+        .pQueueFamilyIndices = &state->queueFamilyIndex,
+        .clipped = VK_TRUE,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .imageArrayLayers = surfaceCapabilities.maxImageArrayLayers,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .oldSwapchain = state->swapchain,
+        .preTransform = surfaceCapabilities.currentTransform,
+        .imageExtent = surfaceCapabilities.currentExtent,
+        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .imageFormat = formats[formatIndex].format,
+        .imageColorSpace = formats[formatIndex].colorSpace,
+        .presentMode = presentMode,
+        .minImageCount = imageCount,
+
+    };
+    vkCreateSwapchainKHR(state->device, &createInfo, state->allocator, &state->swapchain);
+    vkDestroySwapchainKHR(state->device, state->swapchain, state->allocator);
+    std::cout << "Swapchain created: " << reinterpret_cast<uintptr_t>(state->swapchain) << std::endl;
+    state->swapchain = swapchain;
 }
 
 void init(State *state) {
@@ -227,6 +313,7 @@ void init(State *state) {
     selectQueueFamily(state);
     createDevice(state);
     getQueue(state);
+    createSwapchain(state);
 }
 
 void loop(State *state) {
